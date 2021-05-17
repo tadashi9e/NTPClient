@@ -77,9 +77,17 @@ bool NTPClient::forceUpdate() {
     timeout++;
   } while (cb == 0);
 
-  this->_lastUpdate = millis() - (10 * (timeout + 1)); // Account for delay in reading the time
-
   this->_udp->read(this->_packetBuffer, NTP_PACKET_SIZE);
+
+  byte stratum = this->_packetBuffer[10];
+  if (stratum == 0) {  // Kiss-o'-Death Packet
+    return false;
+  }
+  if (stratum == 16) {  // unsynchronized
+    return false;
+  }
+
+  this->_lastUpdate = millis() - (10 * (timeout + 1)); // Account for delay in reading the time
 
   unsigned long highWord = word(this->_packetBuffer[40], this->_packetBuffer[41]);
   unsigned long lowWord = word(this->_packetBuffer[42], this->_packetBuffer[43]);
